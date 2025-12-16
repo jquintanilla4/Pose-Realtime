@@ -1,0 +1,55 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon\r
+._*
+
+# Editors / IDEs
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# Env files / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Node (frontend)
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+.vite/
+**/.vite/
+
+# Python (backend)
+__pycache__/
+**/__pycache__/
+*.py[cod]
+build/
+**/build/
+*.egg-info/
+wheels/
+**/wheels/
+.venv/
+**/.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Runtime data
+backend/data/recordings/
+
+# TypeScript
+*.tsbuildinfo
