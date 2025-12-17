@@ -106,10 +106,9 @@ aside {
 
 /* Controls */
 .controls-container {
-  width: 100%;
-  max-width: 1000px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: center;
   gap: 1.5rem;
   flex-wrap: wrap;
 }

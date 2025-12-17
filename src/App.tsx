@@ -262,7 +262,7 @@ const App: React.FC = () => {
   return (
     <div className="app-container">
       <header>
-        <h1>Antigravity Pose</h1>
+        <h1>Realtime Pose</h1>
       </header>
 
       <main>
