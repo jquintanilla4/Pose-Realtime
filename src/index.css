@@ -293,9 +293,23 @@ button {
   color: var(--text-color-secondary);
 }
 
+.rec-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
 .btn-small {
   font-size: 0.75rem;
   padding: 0.3rem 0.6rem;
   background: var(--glass-border);
   color: #fff;
+}
+
+.btn-small.btn-delete {
+  color: #ff6b6b;
+}
+
+.btn-small.btn-delete:hover {
+  color: #ff8f8f;
 }

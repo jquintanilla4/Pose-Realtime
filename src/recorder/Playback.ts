@@ -21,6 +21,9 @@ export class PlaybackController {
 
     play() {
         if (this.isPlaying) return;
+        if (this.currentTime >= this.duration) {
+            this.seek(0);
+        }
         this.isPlaying = true;
         this.lastTick = performance.now();
         this.loop();

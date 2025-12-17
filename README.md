@@ -77,6 +77,7 @@ npm run lint
 - Recordings are saved into your browser’s **IndexedDB** database named `pose-realtime`.
 - They are **local to your browser profile** (they won’t sync to other devices).
 - To clear recordings:
+  - In the app: use the red **Delete** button next to a saved recording.
   - Chrome/Edge: DevTools → Application → Storage/IndexedDB → delete the `pose-realtime` database (or “Clear site data”).
 
 The storage code lives in `src/storage/recordings.ts`.

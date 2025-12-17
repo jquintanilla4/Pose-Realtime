@@ -66,7 +66,11 @@ const App: React.FC = () => {
         console.error('Draw error (playback):', err);
       }
     };
-    player.onEnd = () => setIsPlaying(false);
+    player.onEnd = () => {
+      player.seek(0);
+      setPlaybackTime(0);
+      setIsPlaying(false);
+    };
 
     return () => {
       loop.stop();
