@@ -1,14 +1,16 @@
 import React from 'react';
-import type { PoseMode } from '../pose/types';
+import type { PoseMode, QualityMode } from '../pose/types';
 
 interface ControlsProps {
     mode: PoseMode;
+    qualityMode: QualityMode;
     peopleCount: number;
     isRecording: boolean;
     isPlaying: boolean;
     playbackTime: number;
     playbackDuration: number;
     onModeChange: (mode: PoseMode) => void;
+    onQualityModeChange: (quality: QualityMode) => void;
     onPeopleCountChange: (count: number) => void;
     onStartCamera: () => void;
     onStopCamera: () => void;
@@ -21,12 +23,14 @@ interface ControlsProps {
 
 export const Controls: React.FC<ControlsProps> = ({
     mode,
+    qualityMode,
     peopleCount,
     isRecording,
     isPlaying,
     playbackTime,
     playbackDuration,
     onModeChange,
+    onQualityModeChange,
     onPeopleCountChange,
     onStartCamera,
     onStopCamera,
@@ -64,6 +68,32 @@ export const Controls: React.FC<ControlsProps> = ({
                         disabled={cameraActive || isRecording}
                     >
                         Multi-Person
+                    </button>
+                </div>
+            </div>
+
+            {/* Quality Toggle: Affects model accuracy vs speed trade-off
+                - Fast: Lower latency, good for real-time applications
+                - Quality: Higher accuracy models (slower processing)
+                  - Holistic: Uses modelComplexity 2 instead of 1
+                  - MoveNet: Uses 512px resolution instead of 256px
+                Disabled when camera is active to prevent mid-stream model changes */}
+            <div className="control-group">
+                <label>Quality</label>
+                <div className="segmented-control">
+                    <button
+                        className={qualityMode === 'fast' ? 'active' : ''}
+                        onClick={() => onQualityModeChange('fast')}
+                        disabled={cameraActive || isRecording}
+                    >
+                        Fast
+                    </button>
+                    <button
+                        className={qualityMode === 'quality' ? 'active' : ''}
+                        onClick={() => onQualityModeChange('quality')}
+                        disabled={cameraActive || isRecording}
+                    >
+                        Quality
                     </button>
                 </div>
             </div>

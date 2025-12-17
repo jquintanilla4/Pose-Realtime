@@ -46,39 +46,55 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: StandardPoseFram
         // Draw Intepolated lines?
         // If mode is MoveNet, use MOVENET_CONNECTIONS (which uses indices 0..16)
         if (frame.mode === 'movenet') {
-            // MoveNet keypoints usually have names like 'nose', 'left_eye' etc in TFJS, 
+            // MoveNet keypoints usually have names like 'nose', 'left_eye' etc in TFJS,
             // OR just indices. My Adapter preserved names from TFJS if available.
             // TFJS returns names like "left_shoulder".
             // But getAdjacentPairs returns indices.
             // We need to map indices to points.
             // In MoveNetAdapter, I pushed them in order 0..16.
 
+            // Draw skeleton connections (cyan lines, 4px thick)
             MOVENET_CONNECTIONS.forEach(([i, j]) => {
                 const kp1 = person.keypoints[i];
                 const kp2 = person.keypoints[j];
                 if (kp1 && kp2 && (kp1.score || 0) > 0.3 && (kp2.score || 0) > 0.3) {
-                    drawLine(ctx, kp1, kp2, width, height, 'cyan');
+                    drawLine(ctx, kp1, kp2, width, height, 'cyan', 4);
                 }
             });
 
+            // Draw joint circles on top of lines (red circles, 6px radius)
             person.keypoints.forEach(kp => {
-                if ((kp.score || 0) > 0.3) drawPoint(ctx, kp, width, height, 'red');
+                if ((kp.score || 0) > 0.3) drawPoint(ctx, kp, width, height, 'red', 6);
             });
         } else {
             // Holistic
             // We stored them with prefixes: pose_I, face_I, left_hand_I, right_hand_I
 
-            // Draw Pose Connections
-            // POSE_CONNECTIONS is array of [i, j]. 
+            // Draw Pose Connections (white lines, 4px thick)
+            // POSE_CONNECTIONS is array of [i, j].
             // We need to map 'pose_i' and 'pose_j'.
-            drawConnections(ctx, person.keypoints, mpHolistic.POSE_CONNECTIONS, 'pose', width, height, 'white');
-            drawConnections(ctx, person.keypoints, mpHolistic.HAND_CONNECTIONS, 'left_hand', width, height, 'orange');
-            drawConnections(ctx, person.keypoints, mpHolistic.HAND_CONNECTIONS, 'right_hand', width, height, 'orange');
-            // Face is too detailed to draw all connections usually, just draw points or contour?
-            // FACEMESH_TESSELATION is huge.
-            // Let's just draw face points small.
-            person.keypoints.filter(k => k.name?.startsWith('face')).forEach(kp => {
-                drawPoint(ctx, kp, width, height, 'rgba(200,200,200,0.5)', 0.5);
+            drawConnections(ctx, person.keypoints, mpHolistic.POSE_CONNECTIONS, 'pose', width, height, 'white', 4);
+
+            // Draw Hand Connections (orange lines, 4px thick)
+            drawConnections(ctx, person.keypoints, mpHolistic.HAND_CONNECTIONS, 'left_hand', width, height, 'orange', 4);
+            drawConnections(ctx, person.keypoints, mpHolistic.HAND_CONNECTIONS, 'right_hand', width, height, 'orange', 4);
+
+            // Draw face mesh using FACEMESH_TESSELATION for full detail
+            // This draws the triangular mesh covering the entire face (468 landmarks connected)
+            drawConnections(ctx, person.keypoints, mpHolistic.FACEMESH_TESSELATION, 'face', width, height, 'rgba(150,150,150,0.4)', 2);
+
+            // Draw face contours on top for better visibility of key features
+            // (eyes, eyebrows, lips, face oval)
+            drawConnections(ctx, person.keypoints, mpHolistic.FACEMESH_CONTOURS, 'face', width, height, 'rgba(255,255,255,0.8)', 3);
+
+            // Draw joint circles for pose landmarks (green circles, 6px radius)
+            person.keypoints.filter(k => k.name?.startsWith('pose')).forEach(kp => {
+                if ((kp.score ?? 1) > 0.5) drawPoint(ctx, kp, width, height, 'lime', 6);
+            });
+
+            // Draw joint circles for hand landmarks (yellow circles, 4px radius)
+            person.keypoints.filter(k => k.name?.startsWith('left_hand') || k.name?.startsWith('right_hand')).forEach(kp => {
+                if ((kp.score ?? 1) > 0.5) drawPoint(ctx, kp, width, height, 'yellow', 4);
             });
         }
     });
@@ -91,7 +107,8 @@ function drawConnections(
     prefix: string,
     w: number,
     h: number,
-    color: string
+    color: string,
+    lineWidth = 2
 ) {
     // Build a map for fast lookup? Or just find?
     // Optimization: Keypoints are a list.
@@ -112,14 +129,14 @@ function drawConnections(
         const kp1 = kpMap.get(`${prefix}_${i}`);
         const kp2 = kpMap.get(`${prefix}_${j}`);
         if (kp1 && kp2 && (kp1.score ?? 1) > 0.5 && (kp2.score ?? 1) > 0.5) {
-            drawLine(ctx, kp1, kp2, w, h, color);
+            drawLine(ctx, kp1, kp2, w, h, color, lineWidth);
         }
     });
 }
 
-function drawLine(ctx: CanvasRenderingContext2D, kp1: Keypoint, kp2: Keypoint, w: number, h: number, color: string) {
+function drawLine(ctx: CanvasRenderingContext2D, kp1: Keypoint, kp2: Keypoint, w: number, h: number, color: string, lineWidth = 2) {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = lineWidth;
     ctx.beginPath();
     ctx.moveTo(kp1.x * w, kp1.y * h);
     ctx.lineTo(kp2.x * w, kp2.y * h);

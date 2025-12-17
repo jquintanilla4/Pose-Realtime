@@ -6,7 +6,7 @@ import { AppLoop } from './recorder/Loop';
 import { PlaybackController } from './recorder/Playback';
 import { HolisticAdapter } from './pose/HolisticAdapter';
 import { MoveNetAdapter } from './pose/MoveNetAdapter';
-import { type PoseMode, type PoseAdapter } from './pose/types';
+import { type PoseMode, type PoseAdapter, type QualityMode } from './pose/types';
 import { drawFrame } from './pose/drawing';
 import { getRecording, saveRecording } from './storage/recordings';
 import './index.css';
@@ -14,6 +14,9 @@ import './index.css';
 const App: React.FC = () => {
   // UI State
   const [mode, setMode] = useState<PoseMode>('holistic');
+  // Quality mode: 'fast' for real-time performance, 'quality' for higher accuracy
+  // This setting is passed to adapters to configure model complexity/resolution
+  const [qualityMode, setQualityMode] = useState<QualityMode>('fast');
   const [peopleCount, setPeopleCount] = useState(1);
   const [cameraActive, setCameraActive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -37,8 +40,14 @@ const App: React.FC = () => {
 
     // Setup callbacks
     loop.onFrame = (frame) => {
-      if (canvasEl.current) {
-        drawFrame(canvasEl.current.getContext('2d')!, frame, canvasEl.current.width, canvasEl.current.height);
+      const canvas = canvasEl.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      try {
+        drawFrame(ctx, frame, canvas.width, canvas.height);
+      } catch (err) {
+        console.error('Draw error (live):', err);
       }
     };
     loop.onRecordingUpdate = () => {
@@ -47,8 +56,14 @@ const App: React.FC = () => {
 
     player.onFrame = (frame, t) => {
       setPlaybackTime(t);
-      if (canvasEl.current && frame) {
-        drawFrame(canvasEl.current.getContext('2d')!, frame, canvasEl.current.width, canvasEl.current.height);
+      const canvas = canvasEl.current;
+      if (!canvas || !frame) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      try {
+        drawFrame(ctx, frame, canvas.width, canvas.height);
+      } catch (err) {
+        console.error('Draw error (playback):', err);
       }
     };
     player.onEnd = () => setIsPlaying(false);
@@ -59,7 +74,13 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const initAdapter = useCallback(async (m: PoseMode, p: number) => {
+  /**
+   * Initialize a pose detection adapter based on the selected mode and quality.
+   * @param m - Pose mode: 'holistic' for single person with face/hands, 'movenet' for multi-person
+   * @param p - Max number of people to detect (only used by MoveNet)
+   * @param q - Quality mode: 'fast' or 'quality' - affects model complexity/resolution
+   */
+  const initAdapter = useCallback(async (m: PoseMode, p: number, q: QualityMode) => {
     let adapter: PoseAdapter;
     if (m === 'holistic') {
       adapter = new HolisticAdapter();
@@ -70,7 +91,8 @@ const App: React.FC = () => {
     // Configure
     adapter.maxPeople = p; // Holistic doesn't use this but MoveNet does
 
-    await adapter.init();
+    // Initialize with quality setting - this configures model complexity/resolution
+    await adapter.init(q);
     appLoop.current.setAdapter(adapter);
 
     // If components are ready
@@ -83,12 +105,15 @@ const App: React.FC = () => {
   useEffect(() => {
     if (cameraActive) {
       // If camera is active, we should theoretically switch adapter on the fly.
-      // For simplicity/robustness, we'll ask user to stop camera first? 
+      // For simplicity/robustness, we'll ask user to stop camera first?
       // Or just restart loop.
       // Let's restart logic if running.
-      void initAdapter(mode, peopleCount);
+      void initAdapter(mode, peopleCount, qualityMode).catch((err) => {
+        console.error('Adapter init failed (mode switch):', err);
+        alert('Pose model failed to initialize. See console for details.');
+      });
     }
-  }, [cameraActive, initAdapter, mode, peopleCount]);
+  }, [cameraActive, initAdapter, mode, peopleCount, qualityMode]);
 
   const startCamera = async () => {
     try {
@@ -101,11 +126,16 @@ const App: React.FC = () => {
         videoEl.current.onloadedmetadata = () => {
           videoEl.current?.play();
           // Start Loop
-          void initAdapter(mode, peopleCount).then(() => {
-            appLoop.current.start();
-            setCameraActive(true);
-            setHasRecordingLoaded(false); // Clear playback mode
-          });
+          void initAdapter(mode, peopleCount, qualityMode)
+            .then(() => {
+              appLoop.current.start();
+              setCameraActive(true);
+              setHasRecordingLoaded(false); // Clear playback mode
+            })
+            .catch((err) => {
+              console.error('Adapter init failed (camera start):', err);
+              alert('Pose model failed to initialize. See console for details.');
+            });
         };
       }
     } catch (err) {
@@ -248,12 +278,14 @@ const App: React.FC = () => {
 
           <Controls
             mode={mode}
+            qualityMode={qualityMode}
             peopleCount={peopleCount}
             isRecording={isRecording}
             isPlaying={isPlaying}
             playbackTime={playbackTime}
             playbackDuration={playbackDuration}
             onModeChange={setMode}
+            onQualityModeChange={setQualityMode}
             onPeopleCountChange={setPeopleCount}
             onStartCamera={startCamera}
             onStopCamera={stopCamera}

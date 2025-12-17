@@ -23,6 +23,13 @@ export interface Person {
 
 export type PoseMode = 'holistic' | 'movenet';
 
+/**
+ * Quality mode affects the accuracy vs speed trade-off for pose estimation.
+ * - 'fast': Lower latency, suitable for real-time applications
+ * - 'quality': Higher accuracy, but slower processing (uses more complex models)
+ */
+export type QualityMode = 'fast' | 'quality';
+
 export interface StandardPoseFrame {
     t_ms: number;
     mode: PoseMode;
@@ -35,7 +42,11 @@ export interface PoseAdapter {
     supportsMultiplePeople: boolean;
     maxPeople: number;
 
-    init(): Promise<void>;
+    /**
+     * Initialize the pose detection model.
+     * @param quality - 'fast' for speed-optimized or 'quality' for accuracy-optimized models
+     */
+    init(quality: QualityMode): Promise<void>;
     estimate(video: HTMLVideoElement, nowMs: number): Promise<StandardPoseFrame>;
     dispose(): void;
 }

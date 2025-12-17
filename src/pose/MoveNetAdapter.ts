@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import * as poseDetection from '@tensorflow-models/pose-detection';
-import type { PoseAdapter, StandardPoseFrame, Person, Keypoint } from './types';
+import type { PoseAdapter, StandardPoseFrame, Person, Keypoint, QualityMode } from './types';
 
 export class MoveNetAdapter implements PoseAdapter {
     name = "MoveNet MultiPose";
@@ -10,16 +10,23 @@ export class MoveNetAdapter implements PoseAdapter {
 
     private detector: poseDetection.PoseDetector | null = null;
 
-    async init(): Promise<void> {
+    async init(quality: QualityMode): Promise<void> {
         // Explicitly set backend as requested
         await tf.setBackend('webgl');
         await tf.ready();
 
         const model = poseDetection.SupportedModels.MoveNet;
         const detectorConfig = {
+            // MoveNet MultiPose Lightning - optimized for detecting multiple people
+            // Note: There's no MultiPose Thunder variant, only SinglePose Thunder exists
             modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
             enableSmoothing: true,
-            multiPoseMaxDimension: 256,
+            // multiPoseMaxDimension controls the input resolution for pose detection
+            // Higher values = more accurate detection but slower processing
+            // Range: 128-512 (must be multiple of 32)
+            // 'quality' mode: 512px for better accuracy with distant/small subjects
+            // 'fast' mode: 256px (default) for real-time performance
+            multiPoseMaxDimension: quality === 'quality' ? 512 : 256,
         };
         this.detector = await poseDetection.createDetector(model, detectorConfig);
     }
